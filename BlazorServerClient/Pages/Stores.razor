@@ -1,0 +1,23 @@
+﻿@page "/stores"
+
+@using Services
+@using Dtos
+@inject IGroceriesRestService GroceriesRestService 
+
+<PageTitle>Available Stores</PageTitle>
+<h1>Available Stores</h1>
+
+@foreach (var store in stores)
+{
+    var storeLink = $"/store/{store.StoreId}";
+    <div><a href=@storeLink>@store.Name</a></div>
+}
+
+@code {
+    private IReadOnlyList<StoreIdAndNameDto> stores = new List<StoreIdAndNameDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        stores = await GroceriesRestService.GetAllStoreIdsAndNamesAsync() ?? new List<StoreIdAndNameDto>();
+    }
+}
