@@ -72,12 +72,12 @@ namespace BlazorServerClient.Services
 
             if(response.IsSuccessStatusCode)
             {
-                _logger.LogInformation($"Get GetAllStoreNamesAsync succeeded!");
+                _logger.LogInformation($"Get GetAllStoreIdsAndNamesAsync succeeded!");
                 return await response.Content.ReadFromJsonAsync<StoreIdAndNameDto[]>();
             }
             else
             {
-                _logger.LogError($"Get GetAllStoreNamesAsync failed!");
+                _logger.LogError($"Get GetAllStoreIdsAndNamesAsync failed!");
                 return new List<StoreIdAndNameDto>();
             }
         }

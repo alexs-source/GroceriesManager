@@ -51,8 +51,8 @@ namespace API.Controllers
             return await _context.Stores.Select(x => new { StoreId = x.StoreId, Name = x.Name }).ToListAsync();
         }
 
-        [HttpPost("add/item")]
-        public async Task<ActionResult> AddItem([FromBody] Item item)
+        [HttpPatch("update/store/item")]
+        public async Task<ActionResult> UpdateItemsInStore([FromBody] Item item)
         {
             if(ModelState.IsValid)
             {
@@ -60,6 +60,29 @@ namespace API.Controllers
                 await _context.SaveChangesAsync();
                 return Ok();
             }
+
+            return BadRequest();
+        }
+
+        [HttpPatch("update/store/{storeId}/description")]
+        public async Task<ActionResult> UpdateStoreDescriptionByStoreId([FromBody] string desc, [FromRoute] int storeId)
+        {
+            if(ModelState.IsValid)
+            {
+                var storeToUpdate = await _context.Stores.FirstOrDefaultAsync(x => x.StoreId == storeId);
+
+                if(storeToUpdate != null)
+                {
+                    storeToUpdate.Description = desc;
+                    await _context.SaveChangesAsync();
+                    return Ok();
+                }
+                else
+                {
+                    return NotFound();
+                }
+            }
+
             return BadRequest();
         }
 
@@ -75,7 +98,7 @@ namespace API.Controllers
                     itemToUpdate.Name = item.Name;
                     itemToUpdate.Description = item.Description;
                     itemToUpdate.Amount = item.Amount;
-                    
+
                     await _context.SaveChangesAsync();
                     return Ok();
                 }
@@ -87,8 +110,6 @@ namespace API.Controllers
             }
             return BadRequest();
         }
-
-        
 
         [HttpDelete("delete/item/{id}")]
         public async Task DeleteItem([FromRoute] int id)
