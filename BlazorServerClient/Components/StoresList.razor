@@ -1,5 +1,57 @@
-﻿<h3>StoresList</h3>
+﻿@using Dtos
+@using BlazorServerClient.Services
+@using Core.Models
+@using Microsoft.AspNetCore.Components
+@inject IGroceriesRestService _groceriesRestService
+
+<h3>Stores</h3>
+
+@foreach (var store in _stores)
+{
+    var storeLink = $"/store/{store.StoreId}";
+    <div><a href=@storeLink>@store.Name</a> <button onclick="@(async () => await HandleOnClickStoreDeleteAsync(store.StoreId))">Delete</button></div>
+}
+
+<EditForm Model="@_editStore" OnValidSubmit="@(async () => await HandleValidSubmitAsync())">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <InputText id="name" @bind-Value="_editStore.Name" />
+
+    <button type="submit">Add</button>
+</EditForm>
 
 @code {
+    private List<StoreIdAndNameDto> _stores = new();
+    private Store _editStore = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var readOnlyStoreList = await _groceriesRestService.GetAllStoreIdsAndNamesAsync();
+        _stores = new List<StoreIdAndNameDto>(readOnlyStoreList);
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        var (succeeded,storeId) = await _groceriesRestService.AddStoreAsync(_editStore);
+        
+        if(succeeded && storeId.HasValue)
+            _stores.Add(new StoreIdAndNameDto { StoreId = storeId.Value, Name = _editStore.Name});
+    }
     
+    private async Task HandleOnClickStoreDeleteAsync(int storeId)
+    {
+        var succeeded = await _groceriesRestService.DeleteStoreAsync(storeId);
+        var storeToRemove = _stores.FirstOrDefault(x => x.StoreId == storeId);
+
+        if (succeeded && storeToRemove != null)
+        {
+            _stores.Remove(storeToRemove);
+
+            await InvokeAsync(() =>
+            {
+                StateHasChanged();
+            });
+        }
+    }
 }

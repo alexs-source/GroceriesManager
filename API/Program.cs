@@ -21,6 +21,11 @@ namespace API
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+                    webBuilder.ConfigureLogging(logging =>
+                    {
+                        logging.ClearProviders();
+                        logging.AddConsole();
+                    });
                 });
     }
 }

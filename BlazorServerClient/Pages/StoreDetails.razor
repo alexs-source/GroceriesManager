@@ -1,27 +1,25 @@
 @page "/store/{StoreId}"
 
 @using Core.Models
+@using BlazorServerClient.Components
 @using Services
 @inject IGroceriesRestService GroceriesRestService
 
 @if(@Store != null){
     <PageTitle>@Store.Name</PageTitle>
-    <h1>@Store.Name</h1>
-
-    @foreach (var item in @Store.Items)
-    {
-        <div><a href=#>@item.Name</a></div>
-    }
+    <ItemsList @bind-Store="Store"></ItemsList>
 }
-
 
 @code {
     [Parameter]
     public string StoreId { get; set; }
+    
     public Store Store { get; set;}
 
     protected override async Task OnInitializedAsync()
     {
         Store = await GroceriesRestService.GetStoreByStoreIdAsync(int.Parse(StoreId));
     }
+
+
 }

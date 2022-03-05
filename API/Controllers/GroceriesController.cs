@@ -15,7 +15,7 @@ namespace API.Controllers
     public class GroceriesController : ControllerBase
     {
         private readonly ILogger<GroceriesController> _logger;
-        private GroceriesContext _context;
+        private readonly GroceriesContext _context;
 
         public GroceriesController(ILogger<GroceriesController> logger, GroceriesContext context)
         {
@@ -49,19 +49,6 @@ namespace API.Controllers
         public async Task<IReadOnlyList<object>> GetStoreNames()
         {
             return await _context.Stores.Select(x => new { StoreId = x.StoreId, Name = x.Name }).ToListAsync();
-        }
-
-        [HttpPatch("update/store/item")]
-        public async Task<ActionResult> UpdateItemsInStore([FromBody] Item item)
-        {
-            if(ModelState.IsValid)
-            {
-                await _context.Items.AddAsync(item);
-                await _context.SaveChangesAsync();
-                return Ok();
-            }
-
-            return BadRequest();
         }
 
         [HttpPatch("update/store/{storeId}/description")]
@@ -144,9 +131,27 @@ namespace API.Controllers
         {
             if(ModelState.IsValid)
             {
-                await _context.Stores.AddAsync(store);
+                var addedStore = await _context.Stores.AddAsync(store); 
                 await _context.SaveChangesAsync();
-                return Ok();
+                var storeId = (int)addedStore.CurrentValues["StoreId"];
+                _logger.LogDebug($"Added new store under StoreId {storeId}");
+                return Ok(storeId);
+            }
+            else
+            {
+                return BadRequest();
+            }
+        }
+
+        [HttpPost("add/item")]
+        public async Task<ActionResult> AddItem([FromBody] Item item)
+        {
+            if(ModelState.IsValid)
+            {
+                var addedItem = await _context.Items.AddAsync(item);
+                await _context.SaveChangesAsync();
+                var addedItemId = addedItem.CurrentValues["Id"];
+                return Ok(addedItemId);
             }
             else
             {
@@ -180,28 +185,6 @@ namespace API.Controllers
             {
                 return BadRequest();
             }
-        }
-
-        [HttpPatch("update/items/{storeId}")]
-        public async Task<ActionResult> UpdateItem([FromRoute] int storeId, [FromBody] Item[] items)
-        {
-            if(storeId > 1)
-            {
-                var storeToUpdate = await _context.Stores.FirstOrDefaultAsync(x => x.StoreId == storeId);
-
-                if(storeToUpdate != null)
-                {
-                    storeToUpdate.Items = items;
-                    await _context.SaveChangesAsync();
-                    return Ok();
-                }
-                else
-                {
-                    return NotFound();
-                }
-
-            }
-            return BadRequest();
         }
     }
 }

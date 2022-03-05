@@ -18,6 +18,31 @@ namespace BlazorServerClient.Services
             _logger = logger;
         }
 
+        public async Task<(bool, int?)> AddStoreAsync(Store store)
+        {
+            var response = await _httpClient.PostAsync(_baseUrl+$"/add/store", JsonContent.Create<Store>(store));
+            if (response.IsSuccessStatusCode)
+            {
+                var addedStoreId = int.Parse(await response.Content.ReadAsStringAsync());
+                _logger.LogDebug($"Adding new store with StoreId {addedStoreId} succeeded!");
+                return (true, addedStoreId);
+            }
+            _logger.LogDebug($"Adding new store not successful. {response.ReasonPhrase}");
+            return (false, null);
+        }
+
+        public async Task<(bool, int?)> AddItemAsync(Item item)
+        {
+            var response = await _httpClient.PostAsync(_baseUrl+$"/add/item", JsonContent.Create<Item>(item));
+            if (response.IsSuccessStatusCode)
+            {
+                var addedItemId = int.Parse(await response.Content.ReadAsStringAsync());
+                return (true,addedItemId);
+            }
+
+            return (false,null);
+        }
+
         public async Task<IReadOnlyList<Item>> GetItemsByStoreIdAsync(int id)
         {
             var response = await _httpClient.GetAsync(_baseUrl+$"/items/{id}");
@@ -80,6 +105,18 @@ namespace BlazorServerClient.Services
                 _logger.LogError($"Get GetAllStoreIdsAndNamesAsync failed!");
                 return new List<StoreIdAndNameDto>();
             }
+        }
+
+        public async Task<bool> DeleteStoreAsync(int storeId)
+        {
+            return (await _httpClient.DeleteAsync(_baseUrl + $"/delete/store/{storeId}")).IsSuccessStatusCode;
+        }
+        
+        public async Task<bool> DeleteItemAsync(int itemId)
+        {
+            var resp = await _httpClient.DeleteAsync(_baseUrl + $"/delete/item/{itemId}");
+            _logger.LogDebug($"Delete Item status code {resp.StatusCode}");
+            return resp.IsSuccessStatusCode;
         }
     }
 }

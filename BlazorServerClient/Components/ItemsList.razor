@@ -2,49 +2,83 @@
 @using BlazorServerClient.Services
 @using Core.Models
 @using Microsoft.AspNetCore.Components
+@using System.ComponentModel.DataAnnotations
 @inject IGroceriesRestService _groceriesRestService
 
-<h3>Stores</h3>
+<h1>@Store.Name</h1>
 
-@foreach (var store in _stores)
+@foreach (var item in _itemsList)
 {
-    var storeLink = $"/store/{store.StoreId}";
-    <div><a href=@storeLink>@store.Name</a> <a href="/stores" onclick="@(async () => await HandleOnClickStoreDeleteAsync(store.StoreId))">Delete</a></div>
+    <div><a href=#>@item.ItemName</a> <button onclick="@(async () => await HandleDeleteItemAsync(item.ItemId))">Delete</button></div>
 }
 
-<EditForm Model="@_editStore" OnValidSubmit="@(async () => await HandleValidSubmitAsync())">
+<EditForm Model="@_itemAddFormModel" OnValidSubmit="@(async () => await HandleValidSubmitAsync())">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
-    <InputText id="name" @bind-Value="_editStore.Name" />
+    <InputText id="name" @bind-Value="_itemAddFormModel.ItemName" />
+    <InputText id="amount" @bind-Value="_itemAddFormModel.ItemAmount" />
 
     <button type="submit">Add</button>
 </EditForm>
 
 @code {
-    private List<StoreIdAndNameDto> _stores = new();
-    private Store _editStore = new();
+    [Parameter]
+    public Store Store { get; set; }
+    
+    [Parameter]
+    public EventCallback<Store> StoreChanged { get; set; }
+
+    private List<ItemAddFormModel> _itemsList;
+
+    public class ItemAddFormModel
+    {
+        public int ItemId { get; set; }
+        [Required]
+        public string ItemName { get; set; } = "";
+        
+        [Required]
+        public string ItemAmount { get; set; }  = "";
+    }
+
+    private ItemAddFormModel _itemAddFormModel = new();
 
     protected override async Task OnInitializedAsync()
     {
-        var readOnlyStoreList = await _groceriesRestService.GetAllStoreIdsAndNamesAsync();
-        _stores = new List<StoreIdAndNameDto>(readOnlyStoreList);
+        _itemsList = Store.Items.Select(i => new ItemAddFormModel {ItemId = i.Id, ItemName = i.Name, ItemAmount = i.Amount.ToString()}).ToList();
     }
 
     private async Task HandleValidSubmitAsync()
     {
-        var (succeeded,storeId) = await _groceriesRestService.AddStoreAsync(_editStore);
+        var editItem = new Item()
+        {
+            StoreId = Store.StoreId,
+            Name = _itemAddFormModel.ItemName,
+            Amount = double.Parse(_itemAddFormModel.ItemAmount)
+        };
         
-        if(succeeded)
-            _stores.Add(new StoreIdAndNameDto { StoreId = storeId, Name = _editStore.Name});
+        var (succeeded,addedItemId) = await _groceriesRestService.AddItemAsync(editItem);
+
+        if (succeeded && addedItemId.HasValue)
+        {
+            var itemToAdd = new ItemAddFormModel {ItemId = addedItemId.Value, ItemName = editItem.Name, ItemAmount = editItem.Amount.ToString()};
+            _itemsList.Add(itemToAdd);
+        }
     }
     
-    private async Task HandleOnClickStoreDeleteAsync(int storeId)
+    private async Task HandleDeleteItemAsync(int itemId)
     {
-        var succeeded = await _groceriesRestService.DeleteStoreAsync(storeId);
-        var storeToRemove = _stores.FirstOrDefault(x => x.StoreId == storeId);
-        
-        if(succeeded && storeToRemove != null)
-            _stores.Remove(storeToRemove);
+        var succeeded = await _groceriesRestService.DeleteItemAsync(itemId);
+        var itemToRemove = _itemsList.FirstOrDefault(x => x.ItemId == itemId);
+
+        if (succeeded && itemToRemove != null)
+        {            
+            _itemsList.Remove(itemToRemove);
+
+            await InvokeAsync(() =>
+            {
+                StateHasChanged();
+            });
+        }
     }
 }
