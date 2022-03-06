@@ -1,12 +1,38 @@
 ﻿@page "/stores"
-
+@attribute [Authorize]
 @using BlazorServerClient.Components
+@using System.Security.Claims
+@inject AuthenticationStateProvider _authenticationStateProvider
 
 <PageTitle>Available Stores</PageTitle>
+
 <h1>Available Stores</h1>
+<div>@_authMessage</div>
+<div>@_surnameMessage</div>
 
 <StoresList />
 
 @code {
+    private string _authMessage;
+    private string _surnameMessage;
+    private IEnumerable<Claim> _claims = Enumerable.Empty<Claim>();
     
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            _authMessage = $"{user.Identity.Name} is authenticated.";
+            _claims = user.Claims;
+            _surnameMessage = 
+                $"Surname: {user.FindFirst(c => c.Type == ClaimTypes.Surname)?.Value}";
+        }
+        else
+        {
+            _authMessage = "The user is NOT authenticated.";
+        }
+    }
+
 }
